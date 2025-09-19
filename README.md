@@ -36,7 +36,7 @@ Windows users just run: `dynamia.cmd` (or through Git Bash: `./dynamia`).
 ```
 What happens:
 1. Auto-downloads a JDK 21 locally into `.jdk/` if you don't have one.
-2. Builds all modules.
+2. Uses the bundled Maven Wrapper (no system Maven required) to build all modules.
 3. Caches dependencies for offline use.
 4. Starts the demo app (CRUD + REST + descriptors) at http://localhost:8080.
 

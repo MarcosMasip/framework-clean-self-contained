@@ -131,7 +131,13 @@ mvn_exec() {
   if [ -x "$MVNW" ]; then
     mvn_cmd="$MVNW"
   else
-    mvn_cmd="mvn"
+    # fallback: try to use wrapper if scripts just added without exec bit yet
+    if [ -f "$REPO_ROOT/mvnw" ]; then chmod +x "$REPO_ROOT/mvnw" 2>/dev/null || true; fi
+    if [ -x "$REPO_ROOT/mvnw" ]; then
+      mvn_cmd="$REPO_ROOT/mvnw"
+    else
+      mvn_cmd="mvn" # relies on system maven
+    fi
   fi
   "$mvn_cmd" "$@"
 }
