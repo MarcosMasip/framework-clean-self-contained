@@ -115,6 +115,39 @@ Notes:
 
 If adding dependencies later, temporarily reconnect and run `./dynamia build` again.
 
+### 12. Offline Limitations & Notes
+
+Most dependencies are fully cached by a single `./dynamia up` run. Two caveats:
+
+1. ZK Transitives: Some legacy/optional API coordinates (e.g. `jakarta.enterprise:cdi-api:2.0.SP1`, `jakarta.persistence:persistence-api:1.0`, `jakarta.transaction:jta:1.1`) may appear during a broad `dependency:go-offline` scan via the ZK community repository. They are not required for the provided demo use case. If the offline warm-up reports them as missing, you can safely ignore unless you explicitly add CDI/JTA features.
+2. Legacy JAXB: We pinned modern `jakarta.xml.bind-api` and removed Ehcache (which previously pulled a legacy javax JAXB chain) to avoid blocked HTTP legacy repositories.
+
+Mitigations:
+- Force refresh once (online): `./mvnw -U -q dependency:go-offline`
+- If adding CDI/JTA later, ensure network access for that first build, then offline works again.
+- Use `./dynamia offline-check` (faster) rather than raw `dependency:go-offline` for routine verification.
+
+### 13. Fresh Clone Runbook (Ordered Commands & Expected Outcomes)
+
+Follow these after cloning to explore everything quickly:
+
+| Step | Command | Expected Outcome |
+|------|---------|------------------|
+| 1 | `git clone <repo-url>; cd framework-clean-self-contained` | Repository present locally |
+| 2 (Linux/macOS) | `chmod +x ./dynamia` | CLI script executable |
+| 3 | `./dynamia up` | JDK auto-installed (if needed), build success, demo starts on 8080 |
+| 4 | `curl -s http://localhost:8080/api/demo/contacts` | JSON with `data`, `pageable`, `response` |
+| 5 (Stop demo) | `Ctrl+C` | Graceful shutdown messages from Tomcat |
+| 6 | `./dynamia offline-check` | `[ok] Offline check passed` |
+| 7 | `./dynamia demo` | Demo restarts instantly using cached deps |
+| 8 | `./dynamia new-app Sample --group com.example --package com.example.sample` | New `apps/sample/` directory created |
+| 9 | `./dynamia build` | Rebuild all modules (skip tests) finishes with `[ok] Build complete` |
+| 10 (tests) | `DYNAMIA_SKIP_TESTS=false ./dynamia build` | Tests execute (if any added) and succeed |
+| 11 (optional vendor) | `./dynamia vendorize` | `.m2repo/` directory populated |
+| 12 (use vendor cache) | `MAVEN_OPTS='-Dmaven.repo.local=.m2repo' ./dynamia build` | Build succeeds using vendored repository |
+
+If any step fails, rerun with `-X` via Maven wrapper for diagnostics: `./mvnw -X <goal>`.
+
 ### Windows Quick Notes
 Use `dynamia.cmd up` (or just `dynamia up` if `.cmd` associated). PowerShell example:
 ```powershell
