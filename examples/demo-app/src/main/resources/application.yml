@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:demo;DB_CLOSE_DELAY=-1
+    driverClassName: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+
+dynamia:
+  app:
+    name: Demo Application
+    short-name: DEMO
+    default-skin: Green
+
+server:
+  port: 8080

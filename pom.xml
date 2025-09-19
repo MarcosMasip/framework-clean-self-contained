@@ -76,6 +76,8 @@
         <!-- ZK UI Backend  https://www.zkoss.org -->
         <module>zk</module>
         <module>starter</module>
+        <!-- Examples / demo -->
+        <module>examples/demo-app</module>
     </modules>
 
     <properties>

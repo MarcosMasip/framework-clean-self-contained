@@ -14,6 +14,31 @@
 <h1 align="center">DynamiaTools</h1>
 DynamiaTools is a cutting-edge full-stack Java 17+ framework designed for building powerful enterprise web applications, harnessing the strength of Spring Boot 3 and the elegance of ZK 10. 
 
+## 🔌 Instant Offline Quickstart (Self-Contained)
+
+Clone and bring the framework + demo app up (first run requires internet to cache dependencies):
+
+```bash
+git clone <this-repo-url>
+cd framework-clean-self-contained
+./dynamia up
+```
+
+Then (optionally disconnected):
+
+```bash
+./dynamia offline-check
+./dynamia demo
+```
+
+Scaffold a new application locally (no start.spring.io):
+
+```bash
+./dynamia new-app MyApp --group com.example --package com.example.myapp
+```
+
+More details in `docs/OFFLINE.md` and `docs/SCAFFOLDER.md`.
+
 
 ## With DynamiaTools you can
 
@@ -30,14 +55,13 @@ DynamiaTools is a cutting-edge full-stack Java 17+ framework designed for buildi
 - Integrate with other Java framework
 - Much more.
 
-## Installation
+## Installation (Traditional Method)
 
-- Create a new SpringBoot project using https://start.spring.io
-- Select Web, JPA and programing language for your spring app
-- Optional select another framework or jdbc driver your need
-- Download and import it in your IDE
-- Add DynamiaTools dependencies
-- Enable DynamiaTools in you application
+If you prefer manual integration instead of the included scaffolder:
+
+1. Create a new SpringBoot project (locally or via start.spring.io).
+2. Add the DynamiaTools dependencies below.
+3. Annotate your main class with `@EnableDynamiaTools`.
 
 ```java
 import org.springframework.boot.SpringApplication;

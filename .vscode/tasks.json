@@ -1,0 +1,17 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build (dynamia)",
+      "type": "shell",
+      "command": "./dynamia build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Demo App",
+      "type": "shell",
+      "command": "./dynamia demo",
+      "problemMatcher": []
+    }
+  ]
+}

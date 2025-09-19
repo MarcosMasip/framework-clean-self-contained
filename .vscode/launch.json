@@ -1,0 +1,12 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Run Demo App",
+      "request": "launch",
+      "mainClass": "demo.DemoApplication",
+      "projectName": "dynamia-demo-app"
+    }
+  ]
+}

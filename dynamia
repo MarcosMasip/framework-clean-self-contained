@@ -1,0 +1,187 @@
+#!/usr/bin/env bash
+# DynamiaTools unified CLI (Unix/macOS/Linux)
+# Goal: Single entry point to build, warm dependencies, run demo, scaffold apps/modules, and manage offline mode.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$SCRIPT_DIR"
+JDK_DIR="$REPO_ROOT/.jdk"
+JAVA_MIN_VERSION=21
+MVNW="$REPO_ROOT/mvnw"
+
+# ANSI colors (fallback if not TTY)
+if [ -t 1 ]; then
+  C_BLUE='\033[1;34m'; C_GREEN='\033[1;32m'; C_YELLOW='\033[1;33m'; C_RED='\033[1;31m'; C_RESET='\033[0m'
+else
+  C_BLUE=''; C_GREEN=''; C_YELLOW=''; C_RED=''; C_RESET=''
+fi
+
+log() { echo -e "${C_BLUE}[dynamia]${C_RESET} $*"; }
+warn() { echo -e "${C_YELLOW}[warn]${C_RESET} $*"; }
+err() { echo -e "${C_RED}[error]${C_RESET} $*" >&2; }
+success() { echo -e "${C_GREEN}[ok]${C_RESET} $*"; }
+
+usage() {
+  cat <<EOF
+DynamiaTools CLI (prototype)
+
+Usage: ./dynamia <command> [options]
+
+Commands:
+  up                Build all modules, warm dependencies (stub), start demo (when available)
+  build             mvn clean install (skip tests by default)
+  demo              Run demo application (placeholder until demo module added)
+  new-app <name>    Scaffold a new application (via Java scaffolder)
+  new-module <name> Scaffold a new module (via Java scaffolder)
+  offline-check     Verify offline readiness (mvn -o validate)
+  vendorize         Prepare vendored local Maven repo (EXPERIMENTAL)
+  help              Show this help
+  version           Show CLI info
+
+Environment Vars:
+  DYNAMIA_SKIP_TESTS=true|false  Control test execution in build (default true)
+  DYNAMIA_MAVEN_FLAGS            Extra flags passed to Maven
+
+Planned (not yet implemented):
+  - JDK auto-download into .jdk
+  - Fully offline warm-up (dependency:go-offline)
+  - Scaffolder Java CLI integration
+EOF
+}
+
+require_command() {
+  if ! command -v "$1" >/dev/null 2>&1; then
+    err "Required command '$1' not found in PATH"; exit 1; fi
+}
+
+java_version_ok() {
+  local v
+  v=$(java -version 2>&1 | head -n1 | sed -E 's/.*version "([0-9]+).*/\1/') || return 1
+  if [ "$v" -ge "$JAVA_MIN_VERSION" ]; then return 0; else return 1; fi
+}
+
+select_java() {
+  if [ -n "${JAVA_HOME:-}" ] && [ -x "$JAVA_HOME/bin/java" ]; then
+    if JAVA_HOME="$JAVA_HOME" "$JAVA_HOME/bin/java" -version >/dev/null 2>&1; then
+      if java_version_ok; then
+        export JAVA_HOME
+        return 0
+      fi
+    fi
+  fi
+  if command -v java >/dev/null 2>&1 && java_version_ok; then
+    return 0
+  fi
+  warn "No suitable Java ${JAVA_MIN_VERSION}+ detected. Auto-download not yet implemented."\
+  " Install a JDK ${JAVA_MIN_VERSION}+ manually or place it under .jdk" 
+  return 1
+}
+
+mvn_exec() {
+  local mvn_cmd
+  if [ -x "$MVNW" ]; then
+    mvn_cmd="$MVNW"
+  else
+    mvn_cmd="mvn"
+  fi
+  "$mvn_cmd" "$@"
+}
+
+cmd_build() {
+  select_java || { err "Java ${JAVA_MIN_VERSION}+ required"; exit 1; }
+  local skipTestsFlag
+  if [ "${DYNAMIA_SKIP_TESTS:-true}" = "true" ]; then
+    skipTestsFlag="-DskipTests"
+  else
+    skipTestsFlag=""
+  fi
+  log "Building modules (skipTests=${DYNAMIA_SKIP_TESTS:-true})"
+  mvn_exec -B clean install $skipTestsFlag ${DYNAMIA_MAVEN_FLAGS:-}
+  success "Build complete"
+}
+
+cmd_demo() {
+  select_java || { err "Java ${JAVA_MIN_VERSION}+ required"; exit 1; }
+  if [ ! -d "examples/demo-app" ]; then
+    err "Demo module not found (examples/demo-app)"
+    exit 2
+  fi
+  log "Starting demo application"
+  mvn_exec -q -pl examples/demo-app -am spring-boot:run
+}
+
+cmd_up() {
+  log "=== DynamiaTools 'up' sequence ==="
+  cmd_build
+  log "Warming dependencies for offline mode"
+  mvn_exec -B -q dependency:go-offline || warn "dependency:go-offline failed (some artifacts may not be cached)"
+  log "Launching demo app (Ctrl+C to stop)"
+  cmd_demo || true
+}
+
+cmd_new_app() {
+  local name="$1"; if [ -z "$name" ]; then err "new-app requires a name"; exit 1; fi
+  select_java || { err "Java ${JAVA_MIN_VERSION}+ required"; exit 1; }
+  log "Scaffolding app '$name'"
+  mvn_exec -q -pl starter -am -DskipTests package >/dev/null 2>&1 || true
+  local JAR
+  JAR=$(ls starter/target/dynamia-tools-starter-*.jar 2>/dev/null | head -n1 || true)
+  if [ -z "$JAR" ]; then err "Scaffolder jar not found. Run ./dynamia build first."; exit 2; fi
+  java -cp "$JAR" tools.dynamia.scaffold.DynamiaScaffolder new-app "$name" "${@:2}" || exit 1
+  success "App '$name' created"
+}
+
+cmd_new_module() {
+  local name="$1"; if [ -z "$name" ]; then err "new-module requires a name"; exit 1; fi
+  select_java || { err "Java ${JAVA_MIN_VERSION}+ required"; exit 1; }
+  log "Scaffolding module '$name'"
+  mvn_exec -q -pl starter -am -DskipTests package >/dev/null 2>&1 || true
+  local JAR
+  JAR=$(ls starter/target/dynamia-tools-starter-*.jar 2>/dev/null | head -n1 || true)
+  if [ -z "$JAR" ]; then err "Scaffolder jar not found. Run ./dynamia build first."; exit 2; fi
+  java -cp "$JAR" tools.dynamia.scaffold.DynamiaScaffolder new-module "$name" "${@:2}" || exit 1
+  success "Module '$name' created"
+}
+
+cmd_offline_check() {
+  select_java || { err "Java ${JAVA_MIN_VERSION}+ required"; exit 1; }
+  log "Running Maven validate in offline mode"
+  if mvn_exec -o -q validate; then
+    success "Offline check passed"
+  else
+    err "Offline check failed. Some dependencies missing from local cache. Run './dynamia up' online first."; exit 1
+  fi
+}
+
+cmd_vendorize() {
+  select_java || { err "Java ${JAVA_MIN_VERSION}+ required"; exit 1; }
+  local repoDir=".m2repo"
+  mkdir -p "$repoDir"
+  log "Populating local vendor repo at $repoDir"
+  mvn_exec -B -q -Dmaven.repo.local=$repoDir dependency:go-offline || {
+    err "Vendor population failed"; exit 1; }
+  success "Vendor repo ready. Use with: MAVEN_OPTS='-Dmaven.repo.local=$repoDir' ./dynamia build"
+}
+
+cmd_version() {
+  echo "Dynamia CLI prototype 0.1 (scripts only)"
+}
+
+main() {
+  local cmd="${1:-help}"; shift || true
+  case "$cmd" in
+    help|-h|--help) usage ;;
+    version|-v|--version) cmd_version ;;
+    build) cmd_build "$@" ;;
+    demo) cmd_demo "$@" ;;
+    up) cmd_up "$@" ;;
+    new-app) cmd_new_app "$@" ;;
+    new-module) cmd_new_module "$@" ;;
+    offline-check) cmd_offline_check "$@" ;;
+    vendorize) cmd_vendorize "$@" ;;
+    *) err "Unknown command: $cmd"; usage; exit 1 ;;
+  esac
+}
+
+main "$@"

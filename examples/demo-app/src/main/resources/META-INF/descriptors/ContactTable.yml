@@ -1,0 +1,7 @@
+view: table
+beanClass: demo.Contact
+
+fields:
+  name:
+  email:
+  phone:

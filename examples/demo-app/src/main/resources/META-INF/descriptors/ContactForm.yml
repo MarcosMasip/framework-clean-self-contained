@@ -1,0 +1,15 @@
+view: form
+beanClass: demo.Contact
+
+fields:
+  name:
+    params:
+      span: 3
+  email:
+    params:
+      type: email
+  phone:
+    component: textbox
+
+layout:
+  columns: 3

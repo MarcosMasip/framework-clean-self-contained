@@ -1,0 +1,13 @@
+{
+  "java.configuration.runtimes": [
+    {
+      "name": "JavaSE-21",
+      "path": "${workspaceFolder}/.jdk",
+      "default": true
+    }
+  ],
+  "java.format.settings.url": "",
+  "files.exclude": {
+    "**/.m2repo": true
+  }
+}
