@@ -20,6 +20,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import tools.dynamia.domain.services.CrudService;
 import tools.dynamia.domain.services.impl.NoOpCrudService;
@@ -34,6 +35,7 @@ import tools.dynamia.templates.TemplateEngine;
 /**
  * @author Mario A. Serrano Leones
  */
+@Configuration
 @ComponentScan(value = {"tools.dynamia", "com.dynamia", "com.dynamiasoluciones"})
 @EnableConfigurationProperties(ApplicationConfigurationProperties.class)
 @Import({RootAppConfiguration.class, MvcConfiguration.class})

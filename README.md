@@ -1,4 +1,3 @@
-
 [![Maven Central](https://img.shields.io/maven-central/v/tools.dynamia/tools.dynamia.app)](https://search.maven.org/search?q=tools.dynamia)
 ![Java Version Required](https://img.shields.io/badge/java-21-blue)
 [![Java CI with Maven](https://github.com/dynamiatools/framework/actions/workflows/maven.yml/badge.svg)](https://github.com/dynamiatools/framework/actions/workflows/maven.yml)
@@ -18,6 +17,13 @@ DynamiaTools is a cutting-edge full-stack Java 21+ framework designed for buildi
 
 The repository contains everything you need to explore DynamiaTools without external generators.
 
+There are now two runnable entry points:
+
+1. **Distribution Jar** (`dist` module): Minimal assembled executable with core framework modules only (no sample CRUD data). Fastest startup. Use `./dynamia run`.
+2. **Demo App** (`examples/demo-app`): Full sample with CRUD descriptors and REST example. Use `./dynamia demo` or the combined warm build + start `./dynamia up`.
+
+Use the distribution jar when you want to validate framework wiring or embed it. Use the demo for reference descriptors and sample endpoints.
+
 ### 1. Clone
 ```bash
 git clone https://github.com/<your-org>/framework-clean-self-contained.git
@@ -31,16 +37,29 @@ chmod +x ./dynamia
 Windows users just run: `dynamia.cmd` (or through Git Bash: `./dynamia`).
 
 ### 3. First run (online once)
+Pick one (all are safe to try):
+
+Minimal core distribution:
+```bash
+./dynamia run
+```
+
+Sample demo with CRUD:
+```bash
+./dynamia demo
+```
+
+Warm build + cache + start demo:
 ```bash
 ./dynamia up
 ```
-What happens:
+What happens during `up`:
 1. Auto-downloads a JDK 21 locally into `.jdk/` if you don't have one.
 2. Uses the bundled Maven Wrapper (no system Maven required) to build all modules.
 3. Caches dependencies for offline use.
 4. Starts the demo app (CRUD + REST + descriptors, Spring Data JPA + in‑memory DB) at http://localhost:8080.
 
-### 4. Verify the API
+### 4. Verify the API (demo only)
 In a second terminal:
 ```bash
 curl -s http://localhost:8080/api/demo/contacts | jq '.'
@@ -79,8 +98,9 @@ Runs the smoke test (placeholder) and any added unit tests. By default tests are
 | Goal | Confirmed When |
 |------|----------------|
 | Build works | `./dynamia build` ends with `[ok] Build complete` |
-| Demo runs | Spring Boot banner + `Tomcat started` appears |
-| REST OK | `curl` shows JSON with `data` & `response` |
+| Distribution runs | `./dynamia run` shows startup banner + `Tomcat started` |
+| Demo runs | `./dynamia demo` shows Spring Boot banner + `Tomcat started` |
+| REST OK (demo) | `curl` shows JSON with `data` & `response` |
 | Offline ready | `./dynamia offline-check` shows `[ok] Offline check passed` |
 | Scaffolder works | `apps/my-app/` created with sources |
 | Vendor cache | `.m2repo/` exists after `vendorize` |
@@ -91,11 +111,13 @@ For more background see `docs/OFFLINE.md` and `docs/SCAFFOLDER.md`.
 
 | Command | Purpose | Expected Outcome |
 |---------|---------|------------------|
+| `./dynamia run` | Launch lightweight distribution jar | Startup banner + Tomcat started |
+| `./dynamia demo` | Launch full demo sample app | Demo endpoints available |
 | `./dynamia up` | Build everything (skip tests), warm deps, launch demo | Spring Boot starts, visit http://localhost:8080 |
 | `./dynamia build` | Clean install all modules | `[ok] Build complete` at end |
 | `DYNAMIA_SKIP_TESTS=false ./dynamia build` | Full build with tests | Tests execute; build success message |
-| `./dynamia demo` | Run only the demo app | Demo runs on 8080 (or configured port) |
 | `./dynamia offline-check` | Validate cached dependencies | `[ok] Offline check passed` |
+| `./dynamia doctor` | Diagnose environment & offline readiness | Diagnostic summary printed |
 | `./dynamia vendorize` | Populate local `.m2repo` vendor cache | `.m2repo/` filled; use with `MAVEN_OPTS='-Dmaven.repo.local=.m2repo'` |
 | `./dynamia new-app MyApp` | Scaffold new application | Directory `apps/my-app` with runnable project |
 | `./dynamia new-module Reports` | Scaffold new reusable module | Directory `modules/reports` (or similar) created |
@@ -104,14 +126,14 @@ For more background see `docs/OFFLINE.md` and `docs/SCAFFOLDER.md`.
 Notes:
 - The repository uses the Maven Wrapper; you never need a pre-installed Maven.
 - A JDK 21 will auto-download into `.jdk/` if none suitable is found.
-- For offline developer machines run `./dynamia up` once while online; afterward `./dynamia demo` works offline.
+- For offline developer machines run `./dynamia run` (or `up`) once while online; afterward both `run` and `demo` work offline.
 
 ### 11. Typical Offline Workflow
-1. (Online) `./dynamia up`
+1. (Online) `./dynamia run` (or `./dynamia up` for full warm + demo)
 2. (Optional) `./dynamia vendorize` to freeze dependencies into `.m2repo`
 3. Disconnect network
 4. `./dynamia offline-check` -> should pass
-5. `./dynamia demo`
+5. `./dynamia demo` (or `run`)
 
 If adding dependencies later, temporarily reconnect and run `./dynamia build` again.
 
@@ -120,7 +142,7 @@ If adding dependencies later, temporarily reconnect and run `./dynamia build` ag
 Most dependencies are fully cached by a single `./dynamia up` run. Two caveats:
 
 1. ZK Transitives: Some legacy/optional API coordinates (e.g. `jakarta.enterprise:cdi-api:2.0.SP1`, `jakarta.persistence:persistence-api:1.0`, `jakarta.transaction:jta:1.1`) may appear during a broad `dependency:go-offline` scan via the ZK community repository. They are not required for the provided demo use case. If the offline warm-up reports them as missing, you can safely ignore unless you explicitly add CDI/JTA features.
-2. Legacy JAXB: We pinned modern `jakarta.xml.bind-api` and removed Ehcache (which previously pulled a legacy javax JAXB chain) to avoid blocked HTTP legacy repositories.
+2. Legacy JAXB & Cache: We pinned modern `jakarta.xml.bind-api`. We removed Ehcache (and its legacy javax JAXB chain) and replaced it with a lightweight in-memory cache to improve offline determinism.
 
 Mitigations:
 - Force refresh once (online): `./mvnw -U -q dependency:go-offline`
@@ -135,9 +157,10 @@ Follow these after cloning to explore everything quickly:
 |------|---------|------------------|
 | 1 | `git clone <repo-url>; cd framework-clean-self-contained` | Repository present locally |
 | 2 (Linux/macOS) | `chmod +x ./dynamia` | CLI script executable |
-| 3 | `./dynamia up` | JDK auto-installed (if needed), build success, demo starts on 8080 |
+| 3a | `./dynamia run` | Distribution jar starts on 8080 |
+| 3b | `./dynamia up` | JDK auto-installed (if needed), build success, demo starts on 8080 |
 | 4 | `curl -s http://localhost:8080/api/demo/contacts` | JSON with `data`, `pageable`, `response` |
-| 5 (Stop demo) | `Ctrl+C` | Graceful shutdown messages from Tomcat |
+| 5 (Stop app) | `Ctrl+C` | Graceful shutdown messages from Tomcat |
 | 6 | `./dynamia offline-check` | `[ok] Offline check passed` |
 | 7 | `./dynamia demo` | Demo restarts instantly using cached deps |
 | 8 | `./dynamia new-app Sample --group com.example --package com.example.sample` | New `apps/sample/` directory created |
@@ -147,6 +170,35 @@ Follow these after cloning to explore everything quickly:
 | 12 (use vendor cache) | `MAVEN_OPTS='-Dmaven.repo.local=.m2repo' ./dynamia build` | Build succeeds using vendored repository |
 
 If any step fails, rerun with `-X` via Maven wrapper for diagnostics: `./mvnw -X <goal>`.
+
+### 14. Profiles
+
+An `offline-lite` Maven profile trims non-essential modules for a quicker dependency warm-up:
+```bash
+./mvnw -Poffline-lite -DskipTests install
+```
+Used internally by the CLI; you can also invoke it manually for constrained environments.
+
+### 15. Doctor Command
+
+Run a quick health & environment diagnostic:
+```bash
+./dynamia doctor
+```
+This reports:
+- JDK path (provisioned or system)
+- Maven Wrapper status
+- Basic dependency cache presence
+- Hints if something is missing
+
+### 16. Distribution vs Demo Summary
+
+| Mode | Command | Purpose | Sample CRUD Included | Relative Startup |
+|------|---------|---------|----------------------|------------------|
+| Distribution | `./dynamia run` | Minimal framework boot | No | Faster |
+| Demo | `./dynamia demo` / `./dynamia up` | Showcase with descriptors | Yes | Slightly slower |
+
+Select the distribution jar for embedding/integration checks, and the demo when you need concrete reference views.
 
 ### Windows Quick Notes
 Use `dynamia.cmd up` (or just `dynamia up` if `.cmd` associated). PowerShell example:

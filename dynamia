@@ -70,12 +70,14 @@ DynamiaTools CLI (prototype)
 Usage: ./dynamia <command> [options]
 
 Commands:
-  up                Build all modules, warm dependencies (stub), start demo (when available)
+  up                Build (offline-lite), warm deps, run distribution jar
   build             mvn clean install (skip tests by default)
-  demo              Run demo application (placeholder until demo module added)
+  run               Run distribution executable jar (build first if missing)
+  demo              Alias of run (backwards compatibility)
   new-app <name>    Scaffold a new application (via Java scaffolder)
   new-module <name> Scaffold a new module (via Java scaffolder)
   offline-check     Verify offline readiness (mvn -o validate)
+  doctor            Diagnose environment (Java, Maven wrapper, dist jar)
   vendorize         Prepare vendored local Maven repo (EXPERIMENTAL)
   help              Show this help
   version           Show CLI info
@@ -155,24 +157,31 @@ cmd_build() {
   success "Build complete"
 }
 
-cmd_demo() {
-  select_java || { err "Java ${JAVA_MIN_VERSION}+ required"; exit 1; }
-  if [ ! -d "examples/demo-app" ]; then
-    err "Demo module not found (examples/demo-app)"
-    exit 2
+DIST_JAR="dist/target/tools.dynamia.dist-$(grep -m1 '<version>' pom.xml | sed -E 's:.*<version>([^<]+)</version>.*:\1:').jar"
+
+ensure_dist_built() {
+  if [ ! -f "$DIST_JAR" ]; then
+    log "Distribution jar not found. Building dist module (offline-lite profile)"
+    mvn_exec -q -Poffline-lite -pl dist -am package -DskipTests || { err "Failed to build distribution"; exit 1; }
   fi
-  log "Starting demo application"
-  # Use explicit plugin coordinates to avoid prefix resolution issues when mixing parent POMs
-  mvn_exec -q -f examples/demo-app/pom.xml -Dspring-boot.run.mainClass=demo.DemoApplication org.springframework.boot:spring-boot-maven-plugin:3.5.5:run
+}
+
+cmd_run() {
+  select_java || { err "Java ${JAVA_MIN_VERSION}+ required"; exit 1; }
+  ensure_dist_built
+  log "Running distribution jar: $DIST_JAR"
+  java -jar "$DIST_JAR"
 }
 
 cmd_up() {
-  log "=== DynamiaTools 'up' sequence ==="
-  cmd_build
-  log "Warming dependencies for offline mode"
-  mvn_exec -B -q dependency:go-offline || warn "dependency:go-offline failed (some artifacts may not be cached)"
-  log "Launching demo app (Ctrl+C to stop)"
-  cmd_demo || true
+  log "=== DynamiaTools 'up' sequence (offline-lite) ==="
+  select_java || { err "Java ${JAVA_MIN_VERSION}+ required"; exit 1; }
+  log "Building (offline-lite profile)"
+  mvn_exec -B -Poffline-lite clean install -DskipTests ${DYNAMIA_MAVEN_FLAGS:-}
+  success "Build complete"
+  log "Warming dependencies (go-offline)"
+  mvn_exec -B -q -Poffline-lite dependency:go-offline || warn "dependency:go-offline encountered issues; some artifacts may not be cached"
+  cmd_run || true
 }
 
 cmd_new_app() {
@@ -223,17 +232,38 @@ cmd_version() {
   echo "Dynamia CLI prototype 0.1 (scripts only)"
 }
 
+cmd_doctor() {
+  log "Environment diagnostics"
+  if select_java; then
+    java -version 2>&1 | head -n1 | sed 's/^/Java: /'
+  else
+    err "Java check failed"
+  fi
+  if [ -x "$MVNW" ]; then
+    log "Maven Wrapper: present"
+  else
+    warn "Maven Wrapper missing"
+  fi
+  if [ -f "$DIST_JAR" ]; then
+    log "Distribution jar: present ($DIST_JAR)"
+  else
+    warn "Distribution jar missing. Run: ./dynamia build or ./dynamia run"
+  fi
+  log "Offline-lite profile modules:"; grep -A40 '<id>offline-lite' pom.xml | sed -n '/<modules>/,/<\/modules>/p' | sed 's/^/  /'
+}
+
 main() {
   local cmd="${1:-help}"; shift || true
   case "$cmd" in
     help|-h|--help) usage ;;
     version|-v|--version) cmd_version ;;
     build) cmd_build "$@" ;;
-    demo) cmd_demo "$@" ;;
-    up) cmd_up "$@" ;;
+  run|demo) cmd_run "$@" ;;
+  up) cmd_up "$@" ;;
     new-app) cmd_new_app "$@" ;;
     new-module) cmd_new_module "$@" ;;
     offline-check) cmd_offline_check "$@" ;;
+  doctor) cmd_doctor "$@" ;;
     vendorize) cmd_vendorize "$@" ;;
     *) err "Unknown command: $cmd"; usage; exit 1 ;;
   esac

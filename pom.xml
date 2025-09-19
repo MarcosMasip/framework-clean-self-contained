@@ -78,6 +78,8 @@
         <module>starter</module>
         <!-- Examples / demo -->
         <module>examples/demo-app</module>
+        <!-- Unified executable distribution -->
+        <module>dist</module>
     </modules>
 
     <properties>
@@ -197,6 +199,32 @@
         </dependencies>
     </dependencyManagement>
     <profiles>
+        <profile>
+            <id>offline-lite</id>
+            <activation>
+                <property>
+                    <name>!skipOfflineLite</name>
+                </property>
+            </activation>
+            <modules>
+                <module>commons</module>
+                <module>integration</module>
+                <module>navigation</module>
+                <module>actions</module>
+                <module>io</module>
+                <module>templates</module>
+                <module>domain</module>
+                <module>domain-jpa</module>
+                <module>crud</module>
+                <module>ui</module>
+                <module>web</module>
+                <module>app</module>
+                <module>zk</module>
+                <module>starter</module>
+                <module>dist</module>
+                <!-- Excluded heavier modules (reports, viewers, examples) for faster dependency warmup -->
+            </modules>
+        </profile>
         <profile>
             <id>release-sign-artifacts</id>
             <activation>
