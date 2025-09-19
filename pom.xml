@@ -188,9 +188,14 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <!-- Force modern Jakarta JAXB API to prevent attempts to resolve legacy javax.xml.bind artifacts -->
+            <dependency>
+                <groupId>jakarta.xml.bind</groupId>
+                <artifactId>jakarta.xml.bind-api</artifactId>
+                <version>4.0.2</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
-
     <profiles>
         <profile>
             <id>release-sign-artifacts</id>

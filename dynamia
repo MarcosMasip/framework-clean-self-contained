@@ -162,7 +162,8 @@ cmd_demo() {
     exit 2
   fi
   log "Starting demo application"
-  mvn_exec -q -pl examples/demo-app -am spring-boot:run
+  # Use explicit plugin coordinates to avoid prefix resolution issues when mixing parent POMs
+  mvn_exec -q -f examples/demo-app/pom.xml -Dspring-boot.run.mainClass=demo.DemoApplication org.springframework.boot:spring-boot-maven-plugin:3.5.5:run
 }
 
 cmd_up() {
