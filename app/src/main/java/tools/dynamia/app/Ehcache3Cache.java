@@ -1,31 +1,34 @@
 package tools.dynamia.app;
 
-import org.ehcache.Cache;
 import org.springframework.cache.support.AbstractValueAdaptingCache;
 import org.springframework.lang.Nullable;
 
+import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Basic Ehcache 3 cache delegator to {@link org.ehcache.Cache}
+ * Lightweight in-memory cache replacement for the former Ehcache3 integration.
+ * <p>
+ * This class intentionally removes the external Ehcache dependency to simplify
+ * offline builds. It keeps only the minimal behavior required by Spring's
+ * {@link org.springframework.cache.Cache} abstraction using a thread-safe
+ * {@link ConcurrentHashMap} as backing store.
  */
 public class Ehcache3Cache extends AbstractValueAdaptingCache {
 
-    private final org.ehcache.Cache delegated;
+    private final Map<Object, Object> store = new ConcurrentHashMap<>();
     private final String name;
 
-    public Ehcache3Cache(boolean allowNullValues, Cache delegated, String name) {
-        super(allowNullValues);
-        this.delegated = delegated;
-        this.name = name;
-    }
-
-    public Ehcache3Cache(org.ehcache.Cache delegated, String name) {
+    public Ehcache3Cache(String name) {
         super(true);
-        this.delegated = delegated;
         this.name = name;
     }
 
+    public Ehcache3Cache(boolean allowNullValues, String name) {
+        super(allowNullValues);
+        this.name = name;
+    }
 
     @Override
     public String getName() {
@@ -34,48 +37,46 @@ public class Ehcache3Cache extends AbstractValueAdaptingCache {
 
     @Override
     public Object getNativeCache() {
-        return delegated;
+        return store;
     }
-
 
     @Override
     protected Object lookup(Object key) {
-        return delegated.get(key);
+        return store.get(key);
     }
 
     @Override
     public <T> T get(Object key, Callable<T> valueLoader) {
-        var value = delegated.get(key);
+        Object value = store.get(key);
         if (value == null) {
             try {
                 value = toStoreValue(valueLoader.call());
+                store.put(key, value);
             } catch (Exception e) {
                 throw new ValueRetrievalException(key, valueLoader, e);
             }
         }
         return (T) fromStoreValue(value);
-
     }
 
     @Override
     public void put(Object key, @Nullable Object value) {
-        this.delegated.put(key, toStoreValue(value));
+        store.put(key, toStoreValue(value));
     }
 
     @Override
-    @Nullable
     public ValueWrapper putIfAbsent(Object key, @Nullable Object value) {
-        Object existing = this.delegated.putIfAbsent(key, toStoreValue(value));
+        Object existing = store.putIfAbsent(key, toStoreValue(value));
         return toValueWrapper(existing);
     }
 
     @Override
     public void evict(Object key) {
-        delegated.remove(key);
+        store.remove(key);
     }
 
     @Override
     public void clear() {
-        delegated.clear();
+        store.clear();
     }
 }
