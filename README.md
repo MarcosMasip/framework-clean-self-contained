@@ -16,28 +16,93 @@ DynamiaTools is a cutting-edge full-stack Java 17+ framework designed for buildi
 
 ## 🔌 Instant Offline Quickstart (Self-Contained)
 
-Clone and bring the framework + demo app up (first run requires internet to cache dependencies):
+The repository contains everything you need to explore DynamiaTools without external generators.
 
+### 1. Clone
 ```bash
-git clone <this-repo-url>
+git clone https://github.com/<your-org>/framework-clean-self-contained.git
 cd framework-clean-self-contained
-./dynamia up
 ```
 
-Then (optionally disconnected):
+### 2. Make the CLI executable (macOS/Linux only, needed once if permissions not preserved)
+```bash
+chmod +x ./dynamia
+```
+Windows users just run: `dynamia.cmd` (or through Git Bash: `./dynamia`).
 
+### 3. First run (online once)
+```bash
+./dynamia up
+```
+What happens:
+1. Auto-downloads a JDK 21 locally into `.jdk/` if you don't have one.
+2. Builds all modules.
+3. Caches dependencies for offline use.
+4. Starts the demo app (CRUD + REST + descriptors) at http://localhost:8080.
+
+### 4. Verify the API
+In a second terminal:
+```bash
+curl -s http://localhost:8080/api/demo/contacts | jq '.'
+```
+You should see JSON with keys: `data`, `pageable`, `response`.
+
+### 5. Offline mode test (optional but recommended)
+1. Stop the app (Ctrl+C).
+2. Disconnect network.
+3. Run:
 ```bash
 ./dynamia offline-check
 ./dynamia demo
 ```
+Expected: offline-check passes; demo starts again fully offline.
 
-Scaffold a new application locally (no start.spring.io):
-
+### 6. Scaffold a new app (no start.spring.io)
 ```bash
 ./dynamia new-app MyApp --group com.example --package com.example.myapp
 ```
+Creates `apps/my-app` with a runnable Spring Boot + DynamiaTools starter.
 
-More details in `docs/OFFLINE.md` and `docs/SCAFFOLDER.md`.
+### 7. (Optional) Vendor dependencies inside the repo
+```bash
+./dynamia vendorize
+MAVEN_OPTS='-Dmaven.repo.local=.m2repo' ./dynamia build
+```
+
+### 8. Run tests
+```bash
+DYNAMIA_SKIP_TESTS=false ./dynamia build
+```
+Runs the smoke test `ContactApiSmokeTest`.
+
+### 9. Success criteria checklist
+| Goal | Confirmed When |
+|------|----------------|
+| Build works | `./dynamia build` ends with `[ok] Build complete` |
+| Demo runs | Spring Boot banner + `Tomcat started` appears |
+| REST OK | `curl` shows JSON with `data` & `response` |
+| Offline ready | `./dynamia offline-check` shows `[ok] Offline check passed` |
+| Scaffolder works | `apps/my-app/` created with sources |
+| Vendor cache | `.m2repo/` exists after `vendorize` |
+
+For more background see `docs/OFFLINE.md` and `docs/SCAFFOLDER.md`.
+
+### Windows Quick Notes
+Use `dynamia.cmd up` (or just `dynamia up` if `.cmd` associated). PowerShell example:
+```powershell
+./dynamia.cmd up
+```
+Offline and scaffolding commands follow the same pattern.
+
+### If the script won't run
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `permission denied: ./dynamia` | Execute bit lost on clone | `chmod +x ./dynamia` |
+| Hangs on JDK download | Network or proxy restriction | Manually install JDK 21 and set `JAVA_HOME` or place a JDK in `.jdk/` |
+| `Offline check failed` | Not all deps cached | Re-run `./dynamia up` while online |
+| Port 8080 busy | Other service using port | Set `server.port=9090` in `examples/demo-app/src/main/resources/application.yml` or export `SERVER_PORT=9090` |
+| Scaffolder jar missing | Starter not built yet | Run `./dynamia build` first |
+
 
 
 ## With DynamiaTools you can
