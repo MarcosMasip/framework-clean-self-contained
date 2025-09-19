@@ -9,6 +9,47 @@ REPO_ROOT="$SCRIPT_DIR"
 JDK_DIR="$REPO_ROOT/.jdk"
 JAVA_MIN_VERSION=21
 MVNW="$REPO_ROOT/mvnw"
+JDK_DOWNLOAD_VERSION="21" # GA major
+
+detect_platform() {
+  OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+  ARCH=$(uname -m)
+  case $ARCH in
+    x86_64|amd64) ARCH="x64" ;;
+    aarch64|arm64) ARCH="aarch64" ;;
+    *) err "Unsupported architecture: $ARCH"; return 1 ;;
+  esac
+  case $OS in
+    linux) PLATFORM_OS="linux" ;;
+    darwin) PLATFORM_OS="mac" ;;
+    msys*|cygwin*|mingw*) PLATFORM_OS="windows" ;;
+    *) err "Unsupported OS: $OS"; return 1 ;;
+  esac
+}
+
+download_jdk() {
+  detect_platform || return 1
+  mkdir -p "$JDK_DIR"
+  if [ -x "$JDK_DIR/bin/java" ]; then return 0; fi
+  if ! command -v curl >/dev/null 2>&1; then
+    err "curl is required to auto-download JDK. Install curl or manually place a JDK in $JDK_DIR"; return 1
+  fi
+  log "Downloading Temurin JDK ${JDK_DOWNLOAD_VERSION} for $PLATFORM_OS/$ARCH"
+  # Use Adoptium API latest GA binary endpoint
+  URL="https://api.adoptium.net/v3/binary/latest/${JDK_DOWNLOAD_VERSION}/ga/${PLATFORM_OS}/${ARCH}/jdk/hotspot/normal/eclipse"
+  ARCHIVE="$JDK_DIR/jdk.tar.gz"
+  if curl -L --fail -o "$ARCHIVE" "$URL"; then
+    tar -xf "$ARCHIVE" -C "$JDK_DIR" --strip-components=1 2>/dev/null || tar -xf "$ARCHIVE" -C "$JDK_DIR" || true
+    rm -f "$ARCHIVE"
+    if [ -x "$JDK_DIR/bin/java" ]; then
+      success "JDK downloaded"
+    else
+      err "JDK download extraction failed. Please install manually."; return 1
+    fi
+  else
+    err "Failed to download JDK from $URL"; return 1
+  fi
+}
 
 # ANSI colors (fallback if not TTY)
 if [ -t 1 ]; then
@@ -70,12 +111,19 @@ select_java() {
       fi
     fi
   fi
+  # Check embedded JDK
+  if [ -x "$JDK_DIR/bin/java" ]; then
+    JAVA_HOME="$JDK_DIR" exec "$JDK_DIR/bin/java" -version >/dev/null 2>&1 || true
+    if JAVA_HOME="$JDK_DIR" java_version_ok; then
+      export JAVA_HOME="$JDK_DIR"; PATH="$JDK_DIR/bin:$PATH"; return 0; fi
+  fi
   if command -v java >/dev/null 2>&1 && java_version_ok; then
     return 0
   fi
-  warn "No suitable Java ${JAVA_MIN_VERSION}+ detected. Auto-download not yet implemented."\
-  " Install a JDK ${JAVA_MIN_VERSION}+ manually or place it under .jdk" 
-  return 1
+  warn "No suitable Java ${JAVA_MIN_VERSION}+ detected. Attempting auto-download..."
+  download_jdk || return 1
+  export JAVA_HOME="$JDK_DIR"; PATH="$JDK_DIR/bin:$PATH"
+  if java_version_ok; then return 0; else err "Downloaded JDK does not satisfy version"; return 1; fi
 }
 
 mvn_exec() {
