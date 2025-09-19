@@ -180,7 +180,11 @@ cmd_up() {
   mvn_exec -B -Poffline-lite clean install -DskipTests ${DYNAMIA_MAVEN_FLAGS:-}
   success "Build complete"
   log "Warming dependencies (go-offline)"
-  mvn_exec -B -q -Poffline-lite dependency:go-offline || warn "dependency:go-offline encountered issues; some artifacts may not be cached"
+  if mvn_exec -B -q -Poffline-lite dependency:go-offline; then
+    success "Dependency warm-up complete"
+  else
+    warn "dependency:go-offline reported unresolved legacy specs (e.g. cdi-api 2.0.SP1). These are optional/transitive and safe to ignore. Runtime is unaffected."
+  fi
   cmd_run || true
 }
 

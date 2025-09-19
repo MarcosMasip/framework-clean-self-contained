@@ -19,7 +19,7 @@ The repository contains everything you need to explore DynamiaTools without exte
 
 There are now two runnable entry points:
 
-1. **Distribution Jar** (`dist` module): Minimal assembled executable with core framework modules only (no sample CRUD data). Fastest startup. Use `./dynamia run`.
+1. **Distribution Jar** (`dist` module): Minimal assembled executable with core framework modules only (no sample CRUD data). Fastest startup. Use `./dynamia run`. Includes a built‑in **Home → Welcome** page so the UI isn't blank on first launch.
 2. **Demo App** (`examples/demo-app`): Full sample with CRUD descriptors and REST example. Use `./dynamia demo` or the combined warm build + start `./dynamia up`.
 
 Use the distribution jar when you want to validate framework wiring or embed it. Use the demo for reference descriptors and sample endpoints.
@@ -39,7 +39,7 @@ Windows users just run: `dynamia.cmd` (or through Git Bash: `./dynamia`).
 ### 3. First run (online once)
 Pick one (all are safe to try):
 
-Minimal core distribution:
+Minimal core distribution (shows Home → Welcome page):
 ```bash
 ./dynamia run
 ```
@@ -111,7 +111,7 @@ For more background see `docs/OFFLINE.md` and `docs/SCAFFOLDER.md`.
 
 | Command | Purpose | Expected Outcome |
 |---------|---------|------------------|
-| `./dynamia run` | Launch lightweight distribution jar | Startup banner + Tomcat started |
+| `./dynamia run` | Launch lightweight distribution jar | Startup banner + Tomcat started + Home/Welcome page |
 | `./dynamia demo` | Launch full demo sample app | Demo endpoints available |
 | `./dynamia up` | Build everything (skip tests), warm deps, launch demo | Spring Boot starts, visit http://localhost:8080 |
 | `./dynamia build` | Clean install all modules | `[ok] Build complete` at end |
@@ -141,7 +141,7 @@ If adding dependencies later, temporarily reconnect and run `./dynamia build` ag
 
 Most dependencies are fully cached by a single `./dynamia up` run. Two caveats:
 
-1. ZK Transitives: Some legacy/optional API coordinates (e.g. `jakarta.enterprise:cdi-api:2.0.SP1`, `jakarta.persistence:persistence-api:1.0`, `jakarta.transaction:jta:1.1`) may appear during a broad `dependency:go-offline` scan via the ZK community repository. They are not required for the provided demo use case. If the offline warm-up reports them as missing, you can safely ignore unless you explicitly add CDI/JTA features.
+1. ZK Transitives: Some legacy/optional API coordinates (e.g. `jakarta.enterprise:cdi-api:2.0.SP1`, `jakarta.persistence:persistence-api:1.0`, `jakarta.transaction:jta:1.1`) may appear during a broad `dependency:go-offline` scan via the ZK community repository. They are not required for the provided distribution or demo use cases. If the offline warm-up reports them as missing, you can safely ignore unless you explicitly add CDI/JTA features. The CLI now prints a clarifying warning instead of failing the sequence.
 2. Legacy JAXB & Cache: We pinned modern `jakarta.xml.bind-api`. We removed Ehcache (and its legacy javax JAXB chain) and replaced it with a lightweight in-memory cache to improve offline determinism.
 
 Mitigations:
@@ -195,7 +195,7 @@ This reports:
 
 | Mode | Command | Purpose | Sample CRUD Included | Relative Startup |
 |------|---------|---------|----------------------|------------------|
-| Distribution | `./dynamia run` | Minimal framework boot | No | Faster |
+| Distribution | `./dynamia run` | Minimal framework boot (Home/Welcome only) | No CRUD | Faster |
 | Demo | `./dynamia demo` / `./dynamia up` | Showcase with descriptors | Yes | Slightly slower |
 
 Select the distribution jar for embedding/integration checks, and the demo when you need concrete reference views.

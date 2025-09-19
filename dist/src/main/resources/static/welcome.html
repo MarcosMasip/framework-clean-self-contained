@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <title>DynamiaTools – Welcome</title>
+    <style>
+        body { font-family: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,sans-serif; margin: 2rem; line-height: 1.5; }
+        h1 { font-size: 1.9rem; margin-bottom: 0.25rem; }
+        .tag { display: inline-block; background:#0d6efd; color:#fff; padding: .15rem .55rem; border-radius:.4rem; font-size:.75rem; letter-spacing:.05em; }
+        code { background:#f5f5f5; padding:2px 4px; border-radius:4px; }
+        pre { background:#272822; color:#f8f8f2; padding:1rem; border-radius:6px; overflow:auto; }
+        a { color:#0d6efd; text-decoration:none; }
+        a:hover { text-decoration:underline; }
+        .next { margin-top:2rem; }
+    </style>
+</head>
+<body>
+<span class="tag">Distribution</span>
+<h1>Welcome to DynamiaTools</h1>
+<p>You are running the minimal distribution JAR. This lightweight build wires the core platform but purposely avoids demo data so you control what loads.</p>
+
+<h2>What now?</h2>
+<ol>
+    <li>Create your first entity + CRUD: <code>./dynamia new-module contacts</code> then follow README steps.</li>
+    <li>Add a navigation module provider (see <code>HomeModuleProvider</code> source) to register pages.</li>
+    <li>Define form/table descriptors under <code>META-INF/descriptors</code> for dynamic CRUD UIs.</li>
+</ol>
+
+<h2>Why this page?</h2>
+<p>Previously the UI appeared blank because no modules/pages were registered. This embedded page serves as a visual confirmation the framework booted correctly.</p>
+
+<div class="next">
+    <strong>Next Tip:</strong> Run <code>./dynamia demo</code> to launch the fuller example application with sample CRUD pages.
+</div>
+
+</body>
+</html>
