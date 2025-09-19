@@ -160,9 +160,36 @@ public class DynamiaScaffolder {
     }
 
     private static String nameToArtifact(String name) {
-        return name.trim().replaceAll("[A-Z]", m -> "-" + m.group().toLowerCase())
-                .replaceAll("^-", "")
-                .toLowerCase().replaceAll("[^a-z0-9-]", "-");
+        if (name == null || name.isBlank()) {
+            return "app";
+        }
+        String result = name.trim();
+
+        // Normalize common separators (space/underscore) to hyphen early
+        result = result.replaceAll("[ _]+", "-");
+
+        // Insert hyphen between lower/digit and upper case boundary (e.g. myApp -> my-App)
+        result = result.replaceAll("([a-z0-9])([A-Z])", "$1-$2");
+
+        // Insert hyphen inside acronym to word transitions (e.g. XMLParser -> XML-Parser)
+        result = result.replaceAll("([A-Z]+)([A-Z][a-z])", "$1-$2");
+
+        // Lowercase
+        result = result.toLowerCase();
+
+        // Replace any remaining invalid chars with hyphen
+        result = result.replaceAll("[^a-z0-9]+", "-");
+
+        // Collapse multiple hyphens
+        result = result.replaceAll("-{2,}", "-");
+
+        // Trim leading/trailing hyphens
+        result = result.replaceAll("^-|-$", "");
+
+        if (result.isEmpty()) {
+            result = "app";
+        }
+        return result;
     }
 
     private static String sanitizeClassName(String name) {
