@@ -12,7 +12,7 @@
 </p>
 
 <h1 align="center">DynamiaTools</h1>
-DynamiaTools is a cutting-edge full-stack Java 17+ framework designed for building powerful enterprise web applications, harnessing the strength of Spring Boot 3 and the elegance of ZK 10. 
+DynamiaTools is a cutting-edge full-stack Java 21+ framework designed for building powerful enterprise web applications, harnessing the strength of Spring Boot 3 and the elegance of ZK 10. 
 
 ## 🔌 Instant Offline Quickstart (Self-Contained)
 
@@ -38,7 +38,7 @@ What happens:
 1. Auto-downloads a JDK 21 locally into `.jdk/` if you don't have one.
 2. Uses the bundled Maven Wrapper (no system Maven required) to build all modules.
 3. Caches dependencies for offline use.
-4. Starts the demo app (CRUD + REST + descriptors) at http://localhost:8080.
+4. Starts the demo app (CRUD + REST + descriptors, Spring Data JPA + in‑memory DB) at http://localhost:8080.
 
 ### 4. Verify the API
 In a second terminal:
@@ -73,7 +73,7 @@ MAVEN_OPTS='-Dmaven.repo.local=.m2repo' ./dynamia build
 ```bash
 DYNAMIA_SKIP_TESTS=false ./dynamia build
 ```
-Runs the smoke test `ContactApiSmokeTest`.
+Runs the smoke test (placeholder) and any added unit tests. By default tests are skipped for faster bootstrap unless you override `DYNAMIA_SKIP_TESTS`.
 
 ### 9. Success criteria checklist
 | Goal | Confirmed When |
@@ -86,6 +86,34 @@ Runs the smoke test `ContactApiSmokeTest`.
 | Vendor cache | `.m2repo/` exists after `vendorize` |
 
 For more background see `docs/OFFLINE.md` and `docs/SCAFFOLDER.md`.
+
+### 10. Command Reference (Cheat Sheet)
+
+| Command | Purpose | Expected Outcome |
+|---------|---------|------------------|
+| `./dynamia up` | Build everything (skip tests), warm deps, launch demo | Spring Boot starts, visit http://localhost:8080 |
+| `./dynamia build` | Clean install all modules | `[ok] Build complete` at end |
+| `DYNAMIA_SKIP_TESTS=false ./dynamia build` | Full build with tests | Tests execute; build success message |
+| `./dynamia demo` | Run only the demo app | Demo runs on 8080 (or configured port) |
+| `./dynamia offline-check` | Validate cached dependencies | `[ok] Offline check passed` |
+| `./dynamia vendorize` | Populate local `.m2repo` vendor cache | `.m2repo/` filled; use with `MAVEN_OPTS='-Dmaven.repo.local=.m2repo'` |
+| `./dynamia new-app MyApp` | Scaffold new application | Directory `apps/my-app` with runnable project |
+| `./dynamia new-module Reports` | Scaffold new reusable module | Directory `modules/reports` (or similar) created |
+| `./dynamia version` | Show CLI version | Prints CLI prototype info |
+
+Notes:
+- The repository uses the Maven Wrapper; you never need a pre-installed Maven.
+- A JDK 21 will auto-download into `.jdk/` if none suitable is found.
+- For offline developer machines run `./dynamia up` once while online; afterward `./dynamia demo` works offline.
+
+### 11. Typical Offline Workflow
+1. (Online) `./dynamia up`
+2. (Optional) `./dynamia vendorize` to freeze dependencies into `.m2repo`
+3. Disconnect network
+4. `./dynamia offline-check` -> should pass
+5. `./dynamia demo`
+
+If adding dependencies later, temporarily reconnect and run `./dynamia build` again.
 
 ### Windows Quick Notes
 Use `dynamia.cmd up` (or just `dynamia up` if `.cmd` associated). PowerShell example:
@@ -186,14 +214,20 @@ Artifacts are available in **Maven Central** repositories
 
 Please visit (https://dynamia.tools) for full documentation and tutorials
 
-## Building
+## Building (Manual Fallback)
 
-- Install OpenJDK 21
-- Install Maven 3.x
-- Install Git
-- Clone this repository
-- Execute `mvn clean install` ;-)
-- Done
+The preferred path is to use the provided CLI (`./dynamia build`). If you still want a raw Maven invocation:
+
+```bash
+./mvnw clean install -DskipTests
+```
+
+If you need tests:
+```bash
+./mvnw clean install
+```
+
+You only need a JDK 21; Maven itself is bundled via the wrapper.
 
 ## License
 
