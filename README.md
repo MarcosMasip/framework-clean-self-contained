@@ -19,7 +19,7 @@ The repository contains everything you need to explore DynamiaTools without exte
 
 There are now two runnable entry points:
 
-1. **Distribution Jar** (`dist` module): Minimal assembled executable with core framework modules only (no sample CRUD data). Fastest startup. Use `./dynamia run`. Includes a built‑in **Home → Welcome** page so the UI isn't blank on first launch.
+1. **Distribution Jar** (`dist` module): Minimal assembled executable with core framework modules only (no sample CRUD data). Fastest startup. Use `./dynamia run`. Includes a built‑in **Home → Welcome** page and a static `index.html` that auto-redirects the root `/` to it.
 2. **Demo App** (`examples/demo-app`): Full sample with CRUD descriptors and REST example. Use `./dynamia demo` or the combined warm build + start `./dynamia up`.
 
 Use the distribution jar when you want to validate framework wiring or embed it. Use the demo for reference descriptors and sample endpoints.
@@ -111,7 +111,7 @@ For more background see `docs/OFFLINE.md` and `docs/SCAFFOLDER.md`.
 
 | Command | Purpose | Expected Outcome |
 |---------|---------|------------------|
-| `./dynamia run` | Launch lightweight distribution jar | Startup banner + Tomcat started + Home/Welcome page |
+| `./dynamia run` | Launch lightweight distribution jar | Startup banner + Tomcat started + Home/Welcome page (root `/` auto-redirect) |
 | `./dynamia demo` | Launch full demo sample app | Demo endpoints available |
 | `./dynamia up` | Build everything (skip tests), warm deps, launch demo | Spring Boot starts, visit http://localhost:8080 |
 | `./dynamia build` | Clean install all modules | `[ok] Build complete` at end |
@@ -136,6 +136,16 @@ Notes:
 5. `./dynamia demo` (or `run`)
 
 If adding dependencies later, temporarily reconnect and run `./dynamia build` again.
+
+### 11.1 Dynamic Port Selection
+If port 8080 is occupied, the CLI now automatically picks the first free port between 8080–8100 and prints a warning:
+```
+[warn] Port 8080 busy; using 8081
+```
+Override manually with:
+```
+SERVER_PORT=9090 ./dynamia run
+```
 
 ### 12. Offline Limitations & Notes
 
@@ -195,7 +205,7 @@ This reports:
 
 | Mode | Command | Purpose | Sample CRUD Included | Relative Startup |
 |------|---------|---------|----------------------|------------------|
-| Distribution | `./dynamia run` | Minimal framework boot (Home/Welcome only) | No CRUD | Faster |
+| Distribution | `./dynamia run` | Minimal framework boot (Home/Welcome only, root redirect) | No CRUD | Faster |
 | Demo | `./dynamia demo` / `./dynamia up` | Showcase with descriptors | Yes | Slightly slower |
 
 Select the distribution jar for embedding/integration checks, and the demo when you need concrete reference views.
